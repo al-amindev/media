@@ -17,4 +17,5 @@ Route::group(['namespace' => 'API'], function(){
     /*property store related*/
     Route::get('image', 'MediaController@getImage');
     Route::post('media/upload', 'MediaController@upload');
+    Route::delete('media/{files}', 'MediaController@delete');
 });

@@ -53,17 +53,40 @@ class MediaController extends Controller
             $now = DateTime::createFromFormat( 'U.u', microtime( true ) );
             $fileName = $now->format( "d_H_i_s_u" );
 
-            if (substr( $image['mime_type'], 0, 5 ) !== 'image') {
-                $this->baseUpload = 'files/';
-            }
+            $this->isFile( $image['mime_type'] );
 
             $image['file_name'] = $fileName . '.' . $image['ext'];
 
             $file->move( $this->baseUpload, $image['file_name'] );
 
-            return Media::create($image);
+            return Media::create( $image );
         }
 
     }
+
+    public function delete($files)
+    {
+        $files = explode( ',', $files );
+        foreach ($files as $file) {
+            $file = Media::findOrfail( $file );
+            $this->isFile( $file->mime_type );
+            $fileName = $this->baseUpload . $file->file_name;
+            if (file_exists( $fileName )) {
+                @unlink( public_path( $fileName ) );
+            }
+            $file->delete();
+        }
+
+        return response()->json( ['result' => 'Delete successfull'] );
+        //return true;
+    }
+
+    private function isFile($file)
+    {
+        if (substr( $file, 0, 5 ) !== 'image') {
+            $this->baseUpload = 'files/';
+        }
+    }
+
 
 }
