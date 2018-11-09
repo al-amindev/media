@@ -16,4 +16,5 @@ use Illuminate\Http\Request;
 Route::group(['namespace' => 'API'], function(){
     /*property store related*/
     Route::get('image', 'MediaController@getImage');
+    Route::post('media/upload', 'MediaController@upload');
 });
