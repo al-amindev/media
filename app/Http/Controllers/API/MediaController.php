@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MediaRequest;
 use App\Media;
+use Carbon\Carbon;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -20,6 +21,8 @@ class MediaController extends Controller
     {
         try {
             $image = $request->img ?? 'default.jpg';
+
+            $this->updateLastView();
 
             if ($request->w) {
                 $this->width = $request->w;
@@ -38,8 +41,6 @@ class MediaController extends Controller
         } catch (\Exception $e) {
             return $e->getMessage();
         }
-
-
     }
 
     public function upload(MediaRequest $request)
@@ -69,16 +70,21 @@ class MediaController extends Controller
         $files = explode( ',', $files );
         foreach ($files as $file) {
             $file = Media::findOrfail( $file );
-            $this->isFile( $file->mime_type );
-            $fileName = $this->baseUpload . $file->file_name;
-            if (file_exists( $fileName )) {
-                @unlink( public_path( $fileName ) );
-            }
-            $file->delete();
+            $this->deleteFile( $file );
         }
 
         return response()->json( ['result' => 'Delete successfull'] );
         //return true;
+    }
+
+    private function deleteFile($file)
+    {
+        $this->isFile( $file->mime_type );
+        $fileName = $this->baseUpload . $file->file_name;
+        if (file_exists( $fileName )) {
+            @unlink( public_path( $fileName ) );
+        }
+        $file->delete();
     }
 
     private function isFile($file)
@@ -88,5 +94,27 @@ class MediaController extends Controller
         }
     }
 
+    private function updateLastView()
+    {
+        if ($img = request()->img) {
+            $media = Media::where( 'file_name', $img )->first();
+            $media->touch();
+        }
+    }
+
+    public function findUnusedFiles()
+    {
+        $now = Carbon::now();
+        $lastFour = Carbon::now()->subHour( 4 );
+        \DB::enableQueryLog();
+        $medias = Media::whereNotBetween( 'updated_at', [$lastFour, $now] )->get();
+        if ($medias->count() > 0) {
+            foreach ($medias as $media) {
+                $this->deleteFile( $media );
+            }
+        }
+
+
+    }
 
 }
